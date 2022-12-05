@@ -9,7 +9,7 @@ wire [31:0] result;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
-ALU alu_dut(operand_A, operand_B, func, control, result, clk);
+ALU alu_dut(operand_A, operand_B, func, control, result);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
