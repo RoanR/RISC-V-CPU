@@ -37,7 +37,7 @@ initial begin
     $fdisplay(file_handle, "Outcome from ALU tests\n");
 
     //LUI Instrustions
-    $fdisplay(file_handle, "Testing LUI function");
+    $fdisplay(file_handle, "Testing SUB function");
     for (tst = 0; tst < 9; tst = tst + 1) begin
       control = 1;
       operand_A = A_in[tst];                

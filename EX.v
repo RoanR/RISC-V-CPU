@@ -1,7 +1,7 @@
-module EX(IR, Imm, A, B, PC, /*Wb, Ex,*/ 
-        clk, B_Imm_Alu, A_PC_Alu, B_Imm_Comp, A_PC_Comp,
-        alu_func, comp_func, alu_cont 
-        alu_res, comp_res, B_res, PC_res);
+module EX(Imm, A, B, PC, /*Wb, Ex,*/ 
+        B_Imm_Alu, A_PC_Alu, B_Imm_Comp, A_PC_Comp,
+        alu_func, comp_func, alu_cont,
+        alu_res, comp_res, B_res);
 
 //Port Discipline
 input wire [31:0] Imm; //Immediate value
@@ -11,21 +11,16 @@ input wire [31:0] PC;  //PC value
 //input wire [31:0] Wb;  //Forwarded from Wb stage
 //input wire [31:0] Ex   //Forwarded from previous Ex stage
 
-//Control signals, for mux and including system clock
+//Control signals, for mux
 input wire B_Imm_Alu, A_PC_Alu, B_Imm_Comp, A_PC_Comp;
 //Control signals, for ALU and COMP
 input wire [2:0] alu_func, comp_func;
-input wire alu_cont, clk;
+input wire alu_cont;
 
 //output wires
 output wire [31:0] alu_res;  //output from alu
-output wire [31:0] comp_res; //output from comp
+output wire comp_res; //output from comp
 output wire [31:0] B_res;    //output from operand B
-output wire [31:0] PC_res;   //output from PC
-
-/*----------------------------------------------------*/
-//Passing PC values forward
-assign PC_res = PC;
 
 /*----------------------------------------------------*/
 
@@ -34,7 +29,7 @@ wire [31:0] forwarded_A;
 wire [31:0] forwarded_B;
 assign forwarded_A = A; //Replace with MUX when forwarding
 assign forwarded_B = B; //Replace with MUX when forwarding
-assign B_res = forwarded_B;
+assign B_res = B;
 
 /*----------------------------------------------------*/
 //ALU Stuff

@@ -17,7 +17,7 @@ assign in_B_unsigned = alu_in_B;
 always @ (alu_in_A, alu_in_B, func, control) begin 
 	case(func)
 		3'b000: begin 
-			if (control) alu_out = alu_in_A; //For LUI Instructions
+			if (control) alu_out = alu_in_A - alu_in_B; //SUB 
 			else alu_out = alu_in_A + alu_in_B; end //ADD or ADDI
 		3'b001: alu_out = alu_in_A << alu_in_B; //Left Shift Logical
 		3'b010: alu_out = alu_in_A < alu_in_B; //Set less than
@@ -32,4 +32,3 @@ always @ (alu_in_A, alu_in_B, func, control) begin
     endcase
 end
 endmodule
-
