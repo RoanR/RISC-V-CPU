@@ -1,0 +1,18 @@
+Outcome from Read FSM tests
+
+Reg A =          x, Reg B =          x, Imm =          x
+Reg A =          x, Reg B =          3, Imm =          x
+Reg A =          x, Reg B =          3, Imm =          x
+Reg A =          x, Reg B =          7, Imm =          x
+Reg A =          x, Reg B =          7, Imm =          x
+Reg A =          x, Reg B =         11, Imm =          x
+Reg A =          x, Reg B =         11, Imm =          x
+Reg A =          x, Reg B =         15, Imm =          x
+Reg A =          x, Reg B =         15, Imm =          x
+Reg A =          x, Reg B =         19, Imm =          x
+Reg A =          x, Reg B =         19, Imm =          x
+Reg A =          x, Reg B =         23, Imm =          x
+Reg A =          x, Reg B =         23, Imm =          x
+Reg A =          x, Reg B =         27, Imm =          x
+Reg A =          x, Reg B =         27, Imm =          x
+Reg A =          x, Reg B =         31, Imm =          x
