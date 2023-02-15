@@ -33,11 +33,11 @@ end
 function [31:0] read(input en, input [31:0] IR); begin
     if (en) begin
         case (IR[14:12])
-        0: read = $signed({mem0[A]});                            //LB
-        1: read = $signed({mem1[A], mem0[A]});                   //LH
-        2: read = $signed({mem3[A], mem2[A], mem1[A], mem0[A]}); //LW
-        4: read = $unsigned({mem0[A]});                          //LBU
-        5: read = $unsigned({mem1[A], mem0[A]});                 //LHU
+        0: read = {mem0[A]};                            //LB
+        1: read = {mem1[A], mem0[A]};                   //LH
+        2: read = {mem3[A], mem2[A], mem1[A], mem0[A]}; //LW
+        4: read = {mem0[A]};                          //LBU
+        5: read = {mem1[A], mem0[A]};                 //LHU
         default: read = 32'hZZZZZZZZ;
         endcase 
         end 
