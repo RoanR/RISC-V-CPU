@@ -1,12 +1,14 @@
-module execute(IR, I, A, B, PC, clk,
+module execute(IR, I, A, B, PC, FA, AA, clk,
             IR_out, ALU_out, COMP_out, PC_out, B_out);
 
 //Input Wires 
-input wire [31:0] IR; //Instruction Reg value
-input wire [31:0] I; //Immediate value
+input wire [31:0] IR;  //Instruction Reg value
+input wire [31:0] I;   //Immediate value
 input wire [31:0] A;   //Reg A value
 input wire [31:0] B;   //Reg B value
 input wire [31:0] PC;  //PC value 
+input wire [31:0] FA;  //Forwarded value from previous ALU
+input wire [4 :0] AA;  //Address that FA relates to
 input wire        clk;
 
 //Internal Wires
@@ -29,17 +31,14 @@ output reg [31:0] ALU_out;
 output reg [31:0] PC_out;
 output reg [31:0] B_out;
 
-function [31:0] alu (input [31:0] rs1, rs2, A, B, I, PC, input [6:0] op, input [2:0] func, input [31:0] IR); begin
+function [31:0] alu (input [31:0] rs1, rs2, A, B, I, FA, PC, input [6:0] op, input [2:0] func, input [31:0] IR, input [4:0] AA); begin
     if (op == 7'b1100011) func = 3'b000; //Branches should be signed additions
     else if (op == 7'b0000011) func = 3'b000; //Loads should be signed additions
     else if (op == 7'b0100011) func = 3'b000; //Stores should be signed additions
     else func = IR[14:12];
 
-    case (op)
-    7'b1100011: begin rs1 = PC; rs2 = I; end //Branch
-    7'b0110011: begin rs1 = A;  rs2 = B; end //ADD to AND
-    default:    begin rs1 = A;  rs2 = I; end //Else
-    endcase
+    rs1 = select_rs1(PC, A, FA, IR, AA);
+    rs2 = select_rs2(I, B, FA, IR, AA);
     
     case (func)
     3'b000: begin 
@@ -77,9 +76,28 @@ function comp (input [31:0] A, B, A_un, B_un, input [2:0] func, input [6:0] op);
 end
 endfunction
 
+function [31:0] select_rs1(input [31:0] PC, A, FA, IR, input [4:0] AA); begin
+    if (IR[6:0] == 7'b1100011) select_rs1 = PC; 
+    else if  (IR[19:15] == AA) select_rs1 = FA;
+    else                       select_rs1 = A;  
+end
+endfunction
+
+function [31:0] select_rs2(input [31:0] I, B, FA, IR, input [4:0] AA); begin
+    if (IR[6:0] == 7'b0110011) select_rs2 = select_B(B, FA, IR, AA);
+    else                       select_rs2 = I;    
+end
+endfunction
+
+function [31:0] select_B(input [31:0] B, FA, IR, input [4:0] AA); begin
+    if (IR[24:20] == AA) select_B = FA;
+    else                 select_B = B; 
+end
+endfunction
+
 always @ (posedge clk) begin
     COMP_out <= comp(A, B, A_un, B_un, IR[14:12], op);
-    ALU_out  <= alu(rs1, rs2, A, B, I, PC, op, func, IR);
+    ALU_out  <= alu(rs1, rs2, A, B, I, FA, PC, op, func, IR, AA);
     IR_out   <= IR;
     PC_out   <= PC;
     B_out    <= B;

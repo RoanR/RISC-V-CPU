@@ -1,12 +1,14 @@
 module execute_tb ();                  
 
 //Input registers
-reg  [31:0] A;                    
-reg  [31:0] B;                    
-reg  [31:0] IR;
-reg  [31:0] Imm;
-reg  [31:0] PC;
-reg         clk;     
+reg [31:0] A;                    
+reg [31:0] B;                    
+reg [31:0] IR;
+reg [31:0] Imm;
+reg [31:0] PC;
+reg [31:0] FA;
+reg [4 :0] AA;
+reg        clk;     
 
 //Output registers                    
 wire  [31:0] IR_res;
@@ -23,7 +25,7 @@ reg [2:0] func;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
-execute fsm_dut(IR, Imm, A, B, PC, clk,
+execute fsm_dut(IR, Imm, A, B, PC, FA, AA, clk,
             IR_res, ALU_res, COMP_res, PC_res, B_res);
 
 
@@ -320,9 +322,33 @@ task test_AND; begin
 end
 endtask
 
+task test_FA; begin
+  $fdisplay(file_handle, "\n/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/");
+  $fdisplay(file_handle, "Testing Forward from EX");
+
+  IR = 32'bxxxxxxxxxxxx00001000xxxxx0110011; //ADD
+  for (a=0; a<5; a=a+1) begin
+    @(posedge clk);
+    A = $random; B = $random; FA = $random; AA = 5'b00001;
+    @(negedge clk);
+    $fdisplay(file_handle, "ADD, A (from FA) + B = Out, (incorrect A: %d) %d + %d = %d", $signed(A), $signed(FA), $signed(B), $signed(ALU_res)); 
+  end
+
+  IR = 32'bxxxxxxx0000100000000xxxxx0110011; //ADD
+  for (a=0; a<5; a=a+1) begin
+    @(posedge clk);
+    A = $random; B = $random; FA = $random; AA = 5'b00001;
+    @(negedge clk);
+    $fdisplay(file_handle, "ADD, A + B (from FA) = Out, (incorrect B: %d) %d + %d = %d", $signed(B), $signed(A), $signed(FA), $signed(ALU_res)); 
+  end
+end
+endtask
+
 initial begin
     file_handle = $fopen("execute_out.txt");
     $fdisplay(file_handle, "Outcome from Execute FSM tests\n");
+    AA = 5'bZZZZZ;
+    FA = 32'hZZZZZZZZ;
     test_COMP;
     test_ADD;
     test_Shift_Left;
@@ -333,6 +359,7 @@ initial begin
     test_Shift_Right_Log;
     test_OR;
     test_AND;
+    test_FA;
     #100 $finish;
 end
 /*
