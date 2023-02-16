@@ -28,7 +28,7 @@ always @ (posedge clk) begin
 end
 /*----------------------------------------------------*/
 initial begin
-  PC_prev = -1; PC_alu = 0; COMP_alu = 0;
+  PC_prev = 0; PC_alu = 0; COMP_alu = 0;
 end
 
 always @ (PC_out) PC_prev = PC_out;

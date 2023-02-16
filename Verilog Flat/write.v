@@ -27,8 +27,8 @@ endfunction
 
 always @ (posedge clk) begin
     case(IR[6:0])
-    7'b1101111: data <= PC + 1;        //JAL
-    7'b1100111: data <= PC + 1;        //JALR
+    7'b1101111: data <= PC + 4;        //JAL
+    7'b1100111: data <= PC + 4;        //JALR
     7'b0000011: data <= read(IR, RD);  //Load
     default:    data <= A;
     endcase

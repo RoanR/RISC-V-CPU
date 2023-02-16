@@ -10,7 +10,7 @@ input wire        clk;
 
 //Internal Signals
 wire [31:0] PC_curr; 
-assign PC_curr = (COMP_alu) ? PC_alu : (PC_prev + 1);
+assign PC_curr = (COMP_alu) ? PC_alu : (PC_prev + 4);
 
 //Output Signals
 output reg [31:0] PC_out;
@@ -21,7 +21,7 @@ reg [31:0] instructions [0:31];
 
 always @ (posedge clk) begin
     PC_out <= PC_curr;
-    IR_out <= instructions[PC_curr];
+    IR_out <= instructions[PC_curr[31:2]];
 end
 
 initial begin
