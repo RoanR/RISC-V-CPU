@@ -5,6 +5,9 @@ reg [31:0] PC_alu;
 reg [31:0] PC_prev;
 reg        COMP_alu;
 reg        clk;
+reg        v_in;
+reg        r_in;
+reg        stall;
 
 //Internal Signals
 integer file_handle; 
@@ -12,11 +15,14 @@ integer file_handle;
 //Output Wires
 wire [31:0] PC_out;
 wire [31:0] IR_out;
+wire v_out;
+wire r_out;
 
 /*----------------------------------------------------*/
 //Design under Test
 fetch fetch_dut(PC_alu, PC_prev, COMP_alu, clk,
-            PC_out, IR_out);
+            PC_out, IR_out,
+            v_in, v_out, r_in, r_out, stall);
 /*----------------------------------------------------*/
 initial begin
     file_handle = $fopen("fetch_out.txt");
@@ -51,7 +57,7 @@ initial begin
 end
 
 initial begin
-  repeat (20) @(posedge clk);
+  repeat (1000) @(posedge clk);
   $finish;
 end
 endmodule

@@ -6,6 +6,10 @@ reg [31:0] WB_data;
 reg [31:0] PC;
 reg [4:0]  WB_address;
 reg        clk;
+reg        v_in;
+reg        v_wb;
+reg        r_in;
+reg        stall;
 
 //Internal Signals
 integer file_handle;
@@ -13,6 +17,7 @@ integer r, a, b;
 reg [4:0] rs1;
 reg [4:0] rs2;
 reg [4:0] rd;
+
 //Different Immediate Sizes
 reg [19:0] imm_20;
 reg [11:0] imm_12;
@@ -23,9 +28,12 @@ wire [31:0] A_out;
 wire [31:0] B_out;
 wire [31:0] I_out;
 wire [31:0] PC_out;
+wire        v_out;
+wire        r_out;
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 read fsm_dut(IR, WB_data, WB_address, PC, clk,
-            IR_out, A_out, B_out, PC_out, I_out);
+            IR_out, A_out, B_out, PC_out, I_out,
+            v_wb, v_in, v_out, r_in, r_out, stall);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 task reset; begin

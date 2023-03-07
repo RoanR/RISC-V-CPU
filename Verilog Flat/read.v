@@ -1,5 +1,6 @@
 module read(IR, WB_data, WB_address, PC, clk,
-            IR_out, A_out, B_out, PC_out, I_out);
+            IR_out, A_out, B_out, PC_out, I_out,
+            v_wb, v_in, v_out, r_in, r_out, stall);
 
 //Port Discipline 
 //Input Wires
@@ -9,14 +10,22 @@ input wire [31:0] PC;
 input wire [4:0]  WB_address;
 input wire        clk;
 
+
 //Internal Wires
 wire [7:0] op;
-wire wr_en; 
-wire [4:0] A_address;
-wire [4:0] B_address;
 
 //The registers 
 reg  [31:0] registers [0:31];
+integer i;
+
+//Stall Controls
+input wire  v_wb; 
+input wire  v_in;
+input wire  r_in;
+input wire  stall;
+output reg  v_out;
+output reg  r_out;
+reg         full;
 
 //Output Signals
 output reg [31:0] IR_out;
@@ -26,9 +35,6 @@ output reg [31:0] I_out;
 output reg [31:0] PC_out;
 
 assign op = IR[6:0];
-assign A_address = IR[19:15];
-assign B_address = IR[24:20];
-assign wr_en = 1; 
 
 function [31:0] calculate_i (input [7:0] op, input [31:0] IR); 
 begin
@@ -53,14 +59,49 @@ end
 endfunction
 
 always @ (posedge clk) begin
-    if (wr_en == 1'b1) registers[WB_address] <= WB_data;
-    A_out <= (A_address == 0) ? 32'h00000000 : registers[A_address];
-    B_out <= (B_address == 0) ? 32'h00000000 : registers[B_address];
+    registers[WB_address] = WB_data;
 end
 
 always @ (posedge clk) begin
-    I_out <= calculate_i(op, IR);
-    PC_out <= PC;
-    IR_out <= IR;
+    if (r_out & v_in) begin
+        if      (IR[19:15] == 0)          A_out <= 32'h00000000;
+        else if (IR[19:15] == WB_address) A_out <= WB_data; 
+        else                              A_out <= registers[IR[19:15]];
+    end
+    if (r_out & v_in) begin
+        if      (IR[24:20] == 0)          B_out <= 32'h00000000;
+        else if (IR[24:20] == WB_address) B_out <= WB_data; 
+        else                              B_out <= registers[IR[24:20]];
+    end
 end
+
+always @ (posedge clk) begin
+    if (r_out & v_in) I_out <= calculate_i(op, IR);
+    if (r_out & v_in) PC_out <= PC;
+    if (r_out & v_in) IR_out <= IR;
+end
+
+initial begin 
+    full = 0;
+    v_out = 0;
+    r_out = 1;
+end
+
+always @ (posedge clk) begin
+    //v_out control 
+    if (full) v_out = 1;
+    else      v_out = 0;
+    
+    //r_out control
+    if (!full) r_out = 1;
+    else       r_out = r_in; 
+
+    //Stall Condition
+    if (stall) begin v_out = 0; r_out = 0; end
+
+    //full control
+    if (v_out && r_in) full = 0;
+    if (v_in && r_out) full = 1;
+end
+
 endmodule

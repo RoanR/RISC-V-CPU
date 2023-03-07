@@ -1,5 +1,6 @@
 module memory(IR, A, B, PC, clk,
-            IR_out, RD_out, A_out, PC_out);
+            IR_out, RD_out, A_out, PC_out,
+            v_in, v_out, r_in, r_out, stall);
 
 //Port Discipline
 //Input Wires
@@ -11,7 +12,7 @@ input wire        clk;
 
 //Internal Signals
 wire       en;
-assign en   =  ((IR[6:0] == 7'b0000011 )|( IR[6:0] == 7'b0100011));
+assign en = ((IR[6:0] == 7'b0000011 )|( IR[6:0] == 7'b0100011));
 
 //Output Signals 
 output reg [31:0] IR_out;
@@ -19,15 +20,25 @@ output reg [31:0] RD_out;
 output reg [31:0] A_out;
 output reg [31:0] PC_out;
 
+//Stall Controls
+input wire  v_in;
+input wire  r_in;
+input wire  stall;
+output reg  v_out;
+output reg  r_out;
+reg         full;
+
 //The Memory - making it byte addressable
-reg [7:0] mem0 [0:65535];
-reg [7:0] mem1 [0:65535];
-reg [7:0] mem2 [0:65535];
-reg [7:0] mem3 [0:65535];
+reg [7:0] mem0 [0:65536];
+reg [7:0] mem1 [0:65536];
+reg [7:0] mem2 [0:65536];
+reg [7:0] mem3 [0:65536];
 
 always @ (posedge clk) begin
-    if (!IR[5]) RD_out <= read(en, IR);
-    else        RD_out <= 32'hZZZZZZZZ;
+    if (r_out & v_in) begin
+        if (!IR[5]) RD_out <= read(en, IR);
+        else        RD_out <= 32'hZZZZZZZZ;
+    end
 end
 
 function [31:0] read(input en, input [31:0] IR); begin
@@ -73,7 +84,7 @@ end
 endfunction
 
 always @ (posedge clk) begin
-    if (en & (IR[5])) begin
+    if (en & (IR[5]) & v_in & r_out) begin
         case(IR[14:12])
         0: sb;
         1: sh;
@@ -113,9 +124,32 @@ end
 endtask
 
 always @ (posedge clk) begin
-    IR_out <= IR;
-    A_out  <= A;
-    PC_out <= PC;
+    if (r_out & v_in) IR_out <= IR;
+    if (r_out & v_in) A_out  <= A;
+    if (r_out & v_in) PC_out <= PC;
+end
+
+initial begin 
+    full = 0;
+    v_out = 0;
+    r_out = 1;
+end
+
+always @ (posedge clk) begin
+    //v_out control 
+    if (full) v_out = 1;
+    else      v_out = 0;
+    
+    //r_out control
+    if (!full) r_out = 1;
+    else       r_out = r_in; 
+
+    //Stall Condition
+    if (stall) begin v_out = 0; r_out = 0; end
+
+    //full control
+    if (v_out && r_in) full = 0;
+    if (v_in && r_out) full = 1;
 end
 
 endmodule
