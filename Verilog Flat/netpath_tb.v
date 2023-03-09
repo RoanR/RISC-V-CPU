@@ -26,6 +26,15 @@ initial begin
 end
 
 initial begin
+  s_fe = 0; 
+  s_dc = 0; 
+  s_ex = 0; 
+  s_me = 0;
+  s_wb = 0; 
+
+end
+
+initial begin
   clk = 0; 
   forever #10 clk = !clk; 
   $stop;

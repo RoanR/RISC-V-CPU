@@ -15,7 +15,6 @@ input wire  v_in;
 input wire  stall;
 output reg  v_out;
 output reg  r_out;
-reg         full;
 
 //Output Registers
 output reg [31:0] data;
@@ -51,20 +50,14 @@ end
 
 //Stall controls 
 initial begin 
-    full = 0;
     v_out = 0;
     r_out = 1;
 end
-always @ (v_in) begin
-    //v_out control 
-    v_out = v_in; 
-end
-always @ (posedge clk) begin
-    //r_out control
-    r_out = 1; 
-    //Stall Condition
-    if (stall) begin v_out = 0; r_out = 0; end
 
+//Driver for control signals
+always @ (posedge clk) begin
+    if (stall) begin v_out <= 0; r_out <= 0; end
+    else begin v_out <= v_in;    r_out <= 1; end
 end
 
 endmodule

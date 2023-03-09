@@ -9,11 +9,12 @@ module netpath(s_fe, s_dc, s_ex, s_me, s_wb, clk);
     wire [4: 0] AD_wb;                          //Writeback
 
     //Control/Stall Signals
-    wire v_fe, r_fe; //Fetch
+    wire v_fe; //r_fe//Fetch
     wire v_dc, r_dc; //Decode
     wire v_ex, r_ex; //Execute
     wire v_me, r_me; //Memory
     wire v_wb, r_wb; //Writeback
+    //wire flush;      //Flush after branch 
 
     //External Controls
     input wire s_fe;
@@ -25,7 +26,8 @@ module netpath(s_fe, s_dc, s_ex, s_me, s_wb, clk);
 
     fetch stage_fe(ALU_ex, PC_fe, CP_ex, clk,
         PC_fe, IR_fe,
-        v_ex, v_fe, r_dc, r_fe, s_fe);
+        v_ex, v_fe, r_dc, /*r_fe*/, s_fe);      //flush dc and ex from branches
+
 
     read stage_dc(IR_fe, RD_wb, AD_wb, PC_fe, clk,
         IR_dc, A_dc, B_dc, PC_dc, I_dc,

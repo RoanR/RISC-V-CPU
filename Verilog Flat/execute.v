@@ -22,8 +22,8 @@ input wire  r_in;
 input wire  stall;
 output reg  v_out;
 output reg  r_out;
-reg         full;
-reg   [4:0] waitlist [0:2]; 
+reg         flush;
+
 
 //Internal Signal
 reg   [2:0] func;
@@ -46,54 +46,6 @@ output reg [31:0] ALU_out;
 output reg [31:0] PC_out;
 output reg [31:0] B_out;
 
-//Initialising control signals
-initial begin 
-    full = 0;
-    v_out = 0;
-    r_out = 1;
-    waitlist[0] = 1'bx;
-    waitlist[1] = 1'bx;
-end
-
-//Driver for control signals
-always @ (posedge clk) begin
-    //v_out control 
-    if (full) v_out = 1;
-    else      v_out = 0;
-    
-    //r_out control
-    if (!full) r_out = 1;
-    else       r_out = r_in; 
-
-    //Stall Condition
-    if (stall) begin v_out = 0; r_out = 0; end
-    
-    if ((AM == waitlist[0])) waitlist[0] = 1'bx;
-    if ((AM == waitlist[1])) waitlist[1] = 1'bx;
-
-    //Stall if waiting for inputs
-    if (!((IR[6:0] == 7'b1101111)||(IR[6:0] == 7'b0010111)||(IR[6:0] == 7'b0110111))) begin
-        //Stall if waiting for input from rs1
-        if ((waitlist[0] == IR[19:15]) || (waitlist[1] == IR[19:15])) begin
-            r_out = 0; v_out = 0;  
-        end 
-
-        //Stall if waiting for input for rs2
-        if ((IR[6:0] == 7'b1100011)||(IR[6:0] == 7'b0100011)||(IR[6:0] == 7'b0110011)) begin
-            if ((waitlist[0] == IR[24:20]) || (waitlist[1] == IR[24:20])) begin
-                r_out = 0; v_out = 0;  
-            end 
-        end
-    end
-
-    //full control
-    if (v_out && r_in) full = 0;
-    if (v_in && r_out) full = 1;
-    if ((IR[6:0] != 7'b1100011) & (IR[6:0] != 7'b0100011)) begin
-        if      (r_out & v_in & (waitlist[0] == 1'bx)) waitlist[0] = IR[11:7];
-        else if (r_out & v_in & (waitlist[1] == 1'bx)) waitlist[1] = IR[11:7];
-    end
-end
 
 //Main Driver for output
 always @ (posedge clk) begin
@@ -134,7 +86,7 @@ end
 endfunction
 
 //Comparison Unit
-function comp (input [31:0] A_in, B_in, A_un, B_un, IR); begin
+function comp (input signed [31:0] A_in, B_in, input unsigned  [31:0] A_un, B_un, IR); begin
     A_in = select_A(A, FA, FM, FW, IR[19:15], AA, AM, AW);
     B_in = select_B(B, FA, FM, FW, IR[24:20], AA, AM, AW);
     A_un = A_in;
@@ -197,4 +149,18 @@ function [31:0] select_B (input [31:0] B, FA, FM, FW, input [4:0] addr, AA, AM, 
     end
 endfunction
 
+//Initialising control signals
+initial begin 
+    v_out = 0;
+    r_out = 1;
+    flush = 0;
+end
+
+//Driver for control signals
+always @ (posedge clk) begin
+    if (stall)                  begin v_out <= 0; r_out <= 0; end
+    else if (COMP_out & !flush) begin v_out <= 0; r_out <=1; flush <= 1; end
+    else if (flush)             begin v_out <= 0; r_out <=1; flush <= 0; end
+    else                        begin v_out <= v_in; r_out <= r_in; end
+end
 endmodule

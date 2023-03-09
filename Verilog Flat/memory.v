@@ -26,7 +26,6 @@ input wire  r_in;
 input wire  stall;
 output reg  v_out;
 output reg  r_out;
-reg         full;
 
 //The Memory - making it byte addressable
 reg [7:0] mem0 [0:65536];
@@ -130,26 +129,14 @@ always @ (posedge clk) begin
 end
 
 initial begin 
-    full = 0;
     v_out = 0;
     r_out = 1;
 end
 
+//Driver for control signals
 always @ (posedge clk) begin
-    //v_out control 
-    if (full) v_out = 1;
-    else      v_out = 0;
-    
-    //r_out control
-    if (!full) r_out = 1;
-    else       r_out = r_in; 
-
-    //Stall Condition
-    if (stall) begin v_out = 0; r_out = 0; end
-
-    //full control
-    if (v_out && r_in) full = 0;
-    if (v_in && r_out) full = 1;
+    if (stall) begin v_out <= 0; r_out <= 0; end
+    else begin v_out <= v_in; r_out <= r_in; end
 end
 
 endmodule
