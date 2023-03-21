@@ -25,7 +25,7 @@ always @ (posedge clk) begin
     if (r_out & v_in) begin
         if      (IR[6:0] == 7'b0100011) address <= 4'b0000; //Store
         else if (IR[6:0] == 7'b1100011) address <= 4'b0000; //Branch
-        else                            address <= IR[10:7];
+        else                            address <= IR[11:7];
     end
 end
 

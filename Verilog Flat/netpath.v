@@ -24,6 +24,10 @@ module netpath(s_fe, s_dc, s_ex, s_me, s_wb, clk);
     input wire s_wb;
     input wire clk;
 
+    //Forwarding Addresses
+    wire [4:0] AA_ex; //Execute
+    wire [4:0] AM_me; //Memory
+
     fetch stage_fe(ALU_ex, PC_fe, CP_ex, clk,
         PC_fe, IR_fe,
         v_ex, v_fe, r_dc, /*r_fe*/, s_fe);      //flush dc and ex from branches
@@ -33,12 +37,12 @@ module netpath(s_fe, s_dc, s_ex, s_me, s_wb, clk);
         IR_dc, A_dc, B_dc, PC_dc, I_dc,
         v_wb, v_fe, v_dc, r_ex, r_dc, s_dc);
     
-    execute stage_ex(IR_dc, I_dc, A_dc, B_dc, PC_dc, ALU_ex, A_me, RD_wb, IR_ex[11:7], IR_me[11:7], AD_wb, clk,
-        IR_ex, ALU_ex, CP_ex, PC_ex, B_ex,
+    execute stage_ex(IR_dc, I_dc, A_dc, B_dc, PC_dc, ALU_ex, A_me, RD_wb, AA_ex, AM_me, AD_wb, clk,
+        IR_ex, ALU_ex, CP_ex, PC_ex, B_ex, AA_ex,
         v_dc, v_ex, r_me, r_ex, s_ex);
 
     memory stage_me(IR_ex, ALU_ex, B_ex, PC_ex, clk,
-        IR_me, RE_me, A_me, PC_me,
+        IR_me, RE_me, A_me, PC_me, AM_me,
         v_ex, v_me, r_wb, r_me, s_me);
 
     write stage_wb(IR_me, RE_me, A_me, PC_me, clk, 

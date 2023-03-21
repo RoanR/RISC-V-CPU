@@ -1,5 +1,5 @@
 module execute(IR, I, A, B, PC, FA, FM, FW, AA, AM, AW, clk,
-            IR_out, ALU_out, COMP_out, PC_out, B_out,
+            IR_out, ALU_out, COMP_out, PC_out, B_out, AA_out,
             v_in, v_out, r_in, r_out, stall);
 
 //Input Wires 
@@ -45,22 +45,33 @@ output reg [31:0] IR_out;
 output reg [31:0] ALU_out;
 output reg [31:0] PC_out;
 output reg [31:0] B_out;
+output reg [4 :0] AA_out; 
 
 
 //Main Driver for output
 always @ (posedge clk) begin
-    if (r_out & v_in) COMP_out <= comp(A_in, B_in, A_un, B_un, IR);
-    if (r_out & v_in) ALU_out  <= alu(rs1, rs2, A, B, I, PC, IR, func);
-    if (r_out & v_in) IR_out   <= IR;
-    if (r_out & v_in) PC_out   <= PC;
-    if (r_out & v_in) B_out    <= B;
+    if (r_out & v_in & !COMP_out) COMP_out <= comp(A_in, B_in, A_un, B_un, IR);
+    else                          COMP_out <= 0;
+    if (r_out & v_in & !COMP_out) ALU_out  <= alu(rs1, rs2, A, B, I, PC, IR, func);
+    if (r_out & v_in & !COMP_out) IR_out   <= IR;
+    if (r_out & v_in & !COMP_out) PC_out   <= PC;
+    if (r_out & v_in & !COMP_out) B_out    <= B;
+    if (r_out & v_in & !COMP_out) AA_out   <= forward(IR);
 end
+
+//Decide address out for forwarding
+function [4:0] forward (input [31:0] IR); begin
+    if ((IR[6:0] == 7'b0100011)|(IR[6:0] == 7'b0000011 )|(IR[6:0] == 7'b1100011)) forward = 4'b0000;
+    else forward = IR[11:7]; 
+end
+endfunction
 
 //ALU
 function [31:0] alu (input [31:0] rs1, rs2, A, B, I, PC, IR, input [2:0] func); begin
     if (IR[6:0] == 7'b1100011)      func = 3'b000; //Branches should be signed additions
     else if (IR[6:0] == 7'b0000011) func = 3'b000; //Loads should be signed additions
     else if (IR[6:0] == 7'b0100011) func = 3'b000; //Stores should be signed additions
+    else if (IR[6:0] == 7'b0110111) func = 3'b000; //LUI should be adds with x0 
     else func = IR[14:12];
 
     rs1 = select_rs1(PC, A, IR, FA, FM, FW, AA, AM, AW);
@@ -76,8 +87,8 @@ function [31:0] alu (input [31:0] rs1, rs2, A, B, I, PC, IR, input [2:0] func); 
     3'b011: alu = (rs1 < $unsigned(rs2)); //SLTIU, SLTU
     3'b100: alu = (rs1 ^ rs2); //XOR, XORI
     3'b101: begin 
-        if (IR[30]) alu =($signed(rs1)>>>$signed(rs2)); //SRAI,  SRA
-        else alu = ($unsigned(rs1) >> $unsigned(rs2));//SRLI, SRL
+        if (IR[30]) alu = $signed(rs1)>>>rs2; //SRAI,  SRA
+        else        alu = ($unsigned(rs1)>>rs2);//SRLI, SRL
         end
     3'b110: alu = (rs1 | rs2); //ORI, OR
     3'b111: alu = (rs1 & rs2); //ANDI, AND
@@ -103,18 +114,21 @@ function comp (input signed [31:0] A_in, B_in, input unsigned  [31:0] A_un, B_un
         3'b111: comp = (A_un >= B_un);//BGEU
         endcase
     end
+    else if (IR[6:0] == 7'b1101111 | IR[6:0] == 7'b1100111 ) begin // For JAL and JALR
+        comp = 1;
+    end
     else comp = 1'b0; 
 end
 endfunction
 
 //Decide Input 1 to ALU
 function [31:0] select_rs1(input [31:0] PC, A, IR, FA, FM, FW, input [4:0] AA, AM, AW); begin
-    if (IR[6:0] == 7'b1100011) select_rs1 = PC; 
+    if (IR[6:0] == 7'b1100011 | IR[6:0] == 7'b1101111) select_rs1 = PC; 
     else begin
-        if ((IR[19:15] == AA)&(AA != 0)) select_rs1 = FA;
-        if ((IR[19:15] == AM)&(AM != 0)) select_rs1 = FM;
-        if ((IR[19:15] == AW)&(AW != 0)) select_rs1 = FW;
-        else                 select_rs1 = A; 
+        if      ((IR[19:15] == AA)&(AA != 0)) select_rs1 = FA;
+        else if ((IR[19:15] == AM)&(AM != 0)) select_rs1 = FM;
+        else if ((IR[19:15] == AW)&(AW != 0)) select_rs1 = FW;
+        else                                  select_rs1 = A; 
     end 
     end                     
 endfunction
@@ -159,8 +173,8 @@ end
 //Driver for control signals
 always @ (posedge clk) begin
     if (stall)                  begin v_out <= 0; r_out <= 0; end
-    else if (COMP_out & !flush) begin v_out <= 0; r_out <=1; flush <= 1; end
-    else if (flush)             begin v_out <= 0; r_out <=1; flush <= 0; end
+    else if (COMP_out & !flush) begin v_out <= 0; r_out <= 1; flush <= 1; end
+    else if (flush)             begin v_out <= 0; r_out <= 1; flush <= 0; end
     else                        begin v_out <= v_in; r_out <= r_in; end
 end
 endmodule

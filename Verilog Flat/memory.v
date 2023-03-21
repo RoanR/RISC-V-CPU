@@ -1,5 +1,5 @@
 module memory(IR, A, B, PC, clk,
-            IR_out, RD_out, A_out, PC_out,
+            IR_out, RD_out, A_out, PC_out, AM_out,
             v_in, v_out, r_in, r_out, stall);
 
 //Port Discipline
@@ -19,6 +19,7 @@ output reg [31:0] IR_out;
 output reg [31:0] RD_out;
 output reg [31:0] A_out;
 output reg [31:0] PC_out;
+output reg [4 :0] AM_out;
 
 //Stall Controls
 input wire  v_in;
@@ -35,10 +36,17 @@ reg [7:0] mem3 [0:65536];
 
 always @ (posedge clk) begin
     if (r_out & v_in) begin
+        AM_out <= forward(IR);
         if (!IR[5]) RD_out <= read(en, IR);
         else        RD_out <= 32'hZZZZZZZZ;
     end
 end
+
+function [4:0] forward(input [31:0] IR); begin
+    if ((IR[6:0] == 7'b0100011)|(IR[6:0] == 7'b1100011)) forward = 4'b0000;
+    else forward = IR[11:7]; 
+end
+endfunction
 
 function [31:0] read(input en, input [31:0] IR); begin
     if (en) begin

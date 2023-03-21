@@ -32,7 +32,7 @@ always @ (posedge clk) begin
 end
 
 initial begin
-    $readmemh("/home/p32065rr/Documents/RISC-V-CPU/Verilog Flat/instructions.mem", instructions);
+    $readmemh("/home/p32065rr/Documents/RISC-V-CPU/Verilog Flat/instr.mem", instructions);
     PC_out = -4;
 end
 

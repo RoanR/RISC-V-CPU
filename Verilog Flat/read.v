@@ -33,11 +33,9 @@ output reg [31:0] B_out;
 output reg [31:0] I_out;
 output reg [31:0] PC_out;
 
-assign op = IR[6:0];
-
-function [31:0] calculate_i (input [7:0] op, input [31:0] IR); 
+function [31:0] calculate_i (input [31:0] IR); 
 begin
-    case (op)
+    case (IR[6:0])
     7'b0110111: calculate_i = {IR[31:12], 12'h000}; //LUI
     7'b0010111: calculate_i = {IR[31:12], 12'h000}; //AUIPC
     7'b1101111: calculate_i = $signed({IR[31], IR[19:12], IR[20], IR[30:21], {1'b0}}); //JAL
@@ -49,8 +47,8 @@ begin
     7'b0000011: calculate_i = $signed(IR[31:20]); //LB, LH, LW, LBU, LHU
     7'b0100011: calculate_i = $signed({IR[31:25], IR[11:7]}); //SH, SW, SB
     7'b0010011: begin
-        if ((IR[14:12] == 3'b000)|(IR[14:12] == 3'b010)) calculate_i = $signed(IR[31:20]); //ADDI, SLTI,
-        else calculate_i = $unsigned(IR[31:20]); //SLTUI, XORI, ORI, ANDI, SLLI, SRLI, SRAI
+        if ((IR[14:12] == 3'b001 )|(IR[14:12] == 3'b101)) calculate_i = $unsigned(IR[24:20]); //SRAI, SRLI, SLLI
+        else calculate_i = $signed(IR[31:20]); //SLTUI, XORI, ORI, ANDI, ADDI, SLTI,
         end
     default:    calculate_i = 32'hXXXXXXXX; 
     endcase
@@ -63,9 +61,9 @@ end
 
 always @ (posedge clk) begin
     if (r_out & v_in) begin
-        if      (IR[19:15] == 0)          A_out <= 32'h00000000;
-        else if (IR[19:15] == WB_address) A_out <= WB_data; 
-        else                              A_out <= registers[IR[19:15]];
+        if (IR[19:15] == 0 | IR[6:0] == 7'b0110111)  A_out <= 32'h00000000;
+        else if (IR[19:15] == WB_address)            A_out <= WB_data; 
+        else                                         A_out <= registers[IR[19:15]];
     end
     if (r_out & v_in) begin
         if      (IR[24:20] == 0)          B_out <= 32'h00000000;
@@ -75,7 +73,7 @@ always @ (posedge clk) begin
 end
 
 always @ (posedge clk) begin
-    if (r_out & v_in) I_out <= calculate_i(op, IR);
+    if (r_out & v_in) I_out <= calculate_i(IR);
     if (r_out & v_in) PC_out <= PC;
     if (r_out & v_in) IR_out <= IR;
 end
