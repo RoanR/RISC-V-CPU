@@ -1,3 +1,5 @@
+`include "definitions.v"
+
 module execute(IR, I, A, B, PC, FA, FM, FW, AA, AM, AW, clk,
             IR_out, ALU_out, COMP_out, PC_out, B_out, AA_out,
             v_in, v_out, r_in, r_out, stall);
@@ -61,37 +63,37 @@ end
 
 //Decide address out for forwarding
 function [4:0] forward (input [31:0] IR); begin
-    if ((IR[6:0] == 7'b0100011)|(IR[6:0] == 7'b0000011 )|(IR[6:0] == 7'b1100011)) forward = 4'b0000;
+    if ((IR[6:0] == `STORE)|(IR[6:0] == `LOAD)|(IR[6:0] == `BRANCH)) forward = 4'b0000;
     else forward = IR[11:7]; 
 end
 endfunction
 
 //ALU
 function [31:0] alu (input [31:0] rs1, rs2, A, B, I, PC, IR, input [2:0] func); begin
-    if (IR[6:0] == 7'b1100011)      func = 3'b000; //Branches should be signed additions
-    else if (IR[6:0] == 7'b0000011) func = 3'b000; //Loads should be signed additions
-    else if (IR[6:0] == 7'b0100011) func = 3'b000; //Stores should be signed additions
-    else if (IR[6:0] == 7'b0110111) func = 3'b000; //LUI should be adds with x0 
+    if (IR[6:0] == `BRANCH)      func = 3'b000; //Branches should be signed additions
+    else if (IR[6:0] == `LOAD)  func = 3'b000; //Loads should be signed additions
+    else if (IR[6:0] == `STORE) func = 3'b000; //Stores should be signed additions
+    else if (IR[6:0] == `LUI)   func = 3'b000; //LUI should be adds with x0 
     else func = IR[14:12];
 
     rs1 = select_rs1(PC, A, IR, FA, FM, FW, AA, AM, AW);
     rs2 = select_rs2(I,  B, IR, FA, FM, FW, AA, AM, AW);
     
     case (func)
-    3'b000: begin 
-        if (IR[30] & (IR[6:0] == 7'b0110011)) alu = rs1 - rs2; //SUB (signed subtraction)
+    `ADD: begin 
+        if (IR[30] & (IR[6:0] == `REG_ALU)) alu = rs1 - rs2; //SUB (signed subtraction)
         else alu = rs1 + rs2; //JALR, all Branches, Loads, Stores, ADDI, ADD (signed addition)
         end
-    3'b001: alu = rs1<<rs2; //SLLI, SLL
-    3'b010: alu = ($signed(rs1) < $signed(rs2)); //SLTI, SLT
-    3'b011: alu = (rs1 < $unsigned(rs2)); //SLTIU, SLTU
-    3'b100: alu = (rs1 ^ rs2); //XOR, XORI
-    3'b101: begin 
+    `SLL: alu = rs1<<rs2; //SLLI, SLL
+    `SLT: alu = ($signed(rs1) < $signed(rs2)); //SLTI, SLT
+    `SLTU: alu = (rs1 < $unsigned(rs2)); //SLTIU, SLTU
+    `XOR: alu = (rs1 ^ rs2); //XOR, XORI
+    `SR: begin 
         if (IR[30]) alu = $signed(rs1)>>>rs2; //SRAI,  SRA
         else        alu = ($unsigned(rs1)>>rs2);//SRLI, SRL
         end
-    3'b110: alu = (rs1 | rs2); //ORI, OR
-    3'b111: alu = (rs1 & rs2); //ANDI, AND
+    `OR:  alu = (rs1 | rs2); //ORI, OR
+    `AND: alu = (rs1 & rs2); //ANDI, AND
     endcase
 end
 endfunction
@@ -102,19 +104,18 @@ function comp (input signed [31:0] A_in, B_in, input unsigned  [31:0] A_un, B_un
     B_in = select_B(B, FA, FM, FW, IR[24:20], AA, AM, AW);
     A_un = A_in;
     B_un = B_in;
-    if (IR[6:0] == 7'b1100011) begin
+    if (IR[6:0] == `BRANCH) begin
         case(IR[14:12])
-        3'b000: comp = (A_in == B_in); //BEQ
-        3'b001: comp = (A_in != B_in);//BNE
-        3'b010: comp = 1'b0;
-        3'b011: comp = 1'b0;
-        3'b100: comp = (A_in < B_in);//BLT
-        3'b101: comp = (A_in >= B_in);//BGE
-        3'b110: comp = (A_un < B_un);//BLTU
-        3'b111: comp = (A_un >= B_un);//BGEU
+        `BEQ:  comp = (A_in == B_in); //BEQ
+        `BNE:  comp = (A_in != B_in);//BNE
+        `BLT:  comp = (A_in < B_in);//BLT
+        `BGE:  comp = (A_in >= B_in);//BGE
+        `BLTU: comp = (A_un < B_un);//BLTU
+        `BGEU: comp = (A_un >= B_un);//BGEU
+        default: comp = 1'b0;
         endcase
     end
-    else if (IR[6:0] == 7'b1101111 | IR[6:0] == 7'b1100111 ) begin // For JAL and JALR
+    else if (IR[6:0] == `JAL | IR[6:0] == `JALR) begin // For JAL and JALR
         comp = 1;
     end
     else comp = 1'b0; 
@@ -123,7 +124,7 @@ endfunction
 
 //Decide Input 1 to ALU
 function [31:0] select_rs1(input [31:0] PC, A, IR, FA, FM, FW, input [4:0] AA, AM, AW); begin
-    if (IR[6:0] == 7'b1100011 | IR[6:0] == 7'b1101111) select_rs1 = PC; 
+    if (IR[6:0] == `BRANCH | IR[6:0] == `JAL) select_rs1 = PC; 
     else begin
         if      ((IR[19:15] == AA)&(AA != 0)) select_rs1 = FA;
         else if ((IR[19:15] == AM)&(AM != 0)) select_rs1 = FM;
@@ -135,7 +136,7 @@ endfunction
 
 //Decide Input 2 to ALU
 function [31:0] select_rs2(input [31:0] I, B, IR, FA, FM, FW, input [4:0] AA, AM, AW); begin
-    if (IR[6:0] == 7'b0110011) begin
+    if (IR[6:0] == `REG_ALU) begin
         if      ((IR[24:20] == AA)&(AA != 0)) select_rs2 = FA;
         else if ((IR[24:20] == AM)&(AM != 0)) select_rs2 = FM;
         else if ((IR[24:20] == AW)&(AW != 0)) select_rs2 = FW;

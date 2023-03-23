@@ -1,3 +1,6 @@
+// 'include' definitions of function codes etc.
+`include "definitions.v"
+
 module fetch(PC_alu, PC_prev, COMP_alu, clk,
             PC_out, IR_out,
             v_in, v_out, r_in, /*r_out*/, stall);

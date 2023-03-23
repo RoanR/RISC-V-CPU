@@ -1,3 +1,5 @@
+`include "definitions.v"
+
 module netpath(s_fe, s_dc, s_ex, s_me, s_wb, clk);
     //Internal Wires
     wire [31:0] PC_fe, IR_fe;                   //Fetch

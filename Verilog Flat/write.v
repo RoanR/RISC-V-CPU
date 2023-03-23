@@ -1,3 +1,5 @@
+`include "definitions.v"
+
 module write(IR, RD, A, PC, clk, 
             data, address,
             v_in, v_out, r_out, stall);
@@ -23,15 +25,15 @@ output reg [4:0]  address;
 //Driver for address
 always @ (posedge clk) begin
     if (r_out & v_in) begin
-        if      (IR[6:0] == 7'b0100011) address <= 4'b0000; //Store
-        else if (IR[6:0] == 7'b1100011) address <= 4'b0000; //Branch
+        if      (IR[6:0] == `STORE) address <= 4'b0000; //Store
+        else if (IR[6:0] == `BRANCH) address <= 4'b0000; //Branch
         else                            address <= IR[11:7];
     end
 end
 
 function [31:0] read(input [31:0] IR, RD); begin
-    if ((IR[14:12] == 0)|(IR[14:12] == 1)|(IR[14:12] == 2)) read = $signed(RD);
-    else if ((IR[14:12] == 4)|(IR[14:12] == 5))             read = $unsigned(RD);
+    if ((IR[14:12] == `LB)|(IR[14:12] == `LH)|(IR[14:12] == `LW)) read = $signed(RD);
+    else if ((IR[14:12] == `LBU)|(IR[14:12] == `LHU))             read = $unsigned(RD);
     end 
 endfunction
 
@@ -39,9 +41,9 @@ endfunction
 always @ (posedge clk) begin
     if (r_out & v_in) begin
         case(IR[6:0])
-        7'b1101111: data <= PC + 4;        //JAL
-        7'b1100111: data <= PC + 4;        //JALR
-        7'b0000011: data <= read(IR, RD);  //Load
+        `JAL: data <= PC + 4;        //JAL
+        `JALR: data <= PC + 4;        //JALR
+        `LOAD: data <= read(IR, RD);  //Load
         default:    data <= A;
         endcase
     end

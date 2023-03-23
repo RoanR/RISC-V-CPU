@@ -1,3 +1,5 @@
+`include "definitions.v"
+
 module memory(IR, A, B, PC, clk,
             IR_out, RD_out, A_out, PC_out, AM_out,
             v_in, v_out, r_in, r_out, stall);
@@ -43,7 +45,7 @@ always @ (posedge clk) begin
 end
 
 function [4:0] forward(input [31:0] IR); begin
-    if ((IR[6:0] == 7'b0100011)|(IR[6:0] == 7'b1100011)) forward = 4'b0000;
+    if ((IR[6:0] == `STORE)|(IR[6:0] == `BRANCH)) forward = 4'b0000;
     else forward = IR[11:7]; 
 end
 endfunction
@@ -51,9 +53,9 @@ endfunction
 function [31:0] read(input en, input [31:0] IR); begin
     if (en) begin
         case (IR[14:12])
-        0, 4: read = lb(A); //LB
-        1, 5: read = lh(A); //LH
-        2: read = lw(A); //LW
+        `LB, `LBU: read = lb(A); //LB
+        `LH, `LHU: read = lh(A); //LH
+        `LW:       read = lw(A); //LW
         default: read = 32'hZZZZZZZZ;
         endcase 
         end 
@@ -93,9 +95,9 @@ endfunction
 always @ (posedge clk) begin
     if (en & (IR[5]) & v_in & r_out) begin
         case(IR[14:12])
-        0: sb;
-        1: sh;
-        2: sw;
+        `SB: sb;
+        `SH: sh;
+        `SW: sw;
         endcase
     end
 end 
