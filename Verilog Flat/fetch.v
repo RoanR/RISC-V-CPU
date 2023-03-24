@@ -7,13 +7,13 @@ module fetch(PC_alu, PC_prev, COMP_alu, clk,
 
 //Port Discipline
 //Input Wires
-input wire [31:0] PC_alu;  //From Ex stage
-input wire [31:0] PC_prev; //For stalls
-input wire        COMP_alu;   
+input wire [31:0] PC_alu;   //ALU output from execute stage
+input wire [31:0] PC_prev;  //PC from previous stage
+input wire        COMP_alu; //Branch decisions to take or not
 input wire        clk;
 
 //Internal Signals
-wire [31:0] PC_curr; 
+wire [31:0] PC_curr; //Decide which PC value to use
 assign PC_curr = (COMP_alu & v_in) ? PC_alu : (PC_prev + 4);
 
 //Stall Controls
@@ -26,7 +26,7 @@ output reg  v_out;
 output reg [31:0] PC_out;
 output reg [31:0] IR_out;
 
-//Instruction memory - only using bottom 16
+//Instruction memory - only using bottom 16bits 
 reg [31:0] instructions [0:65535]; 
 
 always @ (posedge clk) begin
@@ -44,8 +44,7 @@ initial begin
 end
 
 always @ (posedge clk) begin
-    //v_out control 
-    
+    //v_out control
     if (stall)  v_out <= 0;
     else        v_out <= 1;
 end
